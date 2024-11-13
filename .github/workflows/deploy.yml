@@ -2,25 +2,29 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - main
+      - backend
+    paths:
+      - backend/**
 
 jobs:
   deploy:
-    name: deploy artifact
+    name: deploy
     runs-on: ubuntu-latest
     steps:
     - name: checkout
       uses: actions/checkout@v4
 
-    - name: create dotenv
+    - name: build
       run: |
-         touch .env
-         echo "DB_HOST=${{ secrets.DB_HOST }}" >> .env
-         echo "DB_USERNAME=${{ secrets.DB_USERNAME }}" >> .env
-         echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
+         mkdir build
+         cp -R backend/* build
+         touch build/.env
+         echo "DB_HOST=${{ secrets.DB_HOST }}" >> build/.env
+         echo "DB_USERNAME=${{ secrets.DB_USERNAME }}" >> build/.env
+         echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> build/.env
 
     - name: archive
-      run: tar czf build.tar.gz * .env
+      run: tar czf build.tar.gz build/* build/.env
 
     - name: copy file to server
       uses: appleboy/scp-action@v0.1.7
@@ -39,4 +43,4 @@ jobs:
         port: ${{ secrets.SSH_PORT }}
         username: ${{ secrets.SSH_USERNAME }}
         key: ${{ secrets.SSH_KEY }}
-        script: "rm -rf backend/build; mkdir -p backend/build; cd backend/build; tar xzf ../build.tar.gz; ./setup.sh; ./run.sh"
+        script: "rm -rf backend/build; cd backend; tar xzf build.tar.gz; cd build; ./setup.sh; ./run.sh"
