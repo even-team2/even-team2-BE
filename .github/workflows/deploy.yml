@@ -20,7 +20,7 @@ jobs:
          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
 
     - name: archive
-      run: tar czf deploy.tar.gz * .env
+      run: tar czf build.tar.gz * .env
 
     - name: copy file to server
       uses: appleboy/scp-action@v0.1.7
@@ -29,8 +29,8 @@ jobs:
         port: ${{ secrets.SSH_PORT }}
         username: ${{ secrets.SSH_USERNAME }}
         key: ${{ secrets.SSH_KEY }}
-        source: deploy.tar.gz
-        target: ./
+        source: build.tar.gz
+        target: backend
 
     - name: execute shell script
       uses: appleboy/ssh-action@master
@@ -39,4 +39,4 @@ jobs:
         port: ${{ secrets.SSH_PORT }}
         username: ${{ secrets.SSH_USERNAME }}
         key: ${{ secrets.SSH_KEY }}
-        script: "cd backend; rm -rf ./*; tar xzf ../deploy.tar.gz; ./setup.sh; ./run.sh"
+        script: "rm -rf backend/build; mkdir -p backend/build; cd backend/build; tar xzf ../build.tar.gz; ./setup.sh; ./run.sh"
