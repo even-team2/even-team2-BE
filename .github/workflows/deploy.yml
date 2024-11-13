@@ -1,0 +1,42 @@
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: deploy artifact
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4
+
+    - name: create dotenv
+      run: |
+         touch .env
+         echo "DB_HOST=${{ secrets.DB_HOST }}" >> .env
+         echo "DB_USERNAME=${{ secrets.DB_USERNAME }}" >> .env
+         echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
+
+    - name: archive
+      run: tar czf deploy.tar.gz * .env
+
+    - name: copy file to server
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.SSH_HOST }}
+        port: ${{ secrets.SSH_PORT }}
+        username: ${{ secrets.SSH_USERNAME }}
+        key: ${{ secrets.SSH_KEY }}
+        source: deploy.tar.gz
+        target: ./
+
+    - name: execute shell script
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.SSH_HOST }}
+        port: ${{ secrets.SSH_PORT }}
+        username: ${{ secrets.SSH_USERNAME }}
+        key: ${{ secrets.SSH_KEY }}
+        script: "cd backend; rm -rf ./*; tar xzf ../deploy.tar.gz; ./setup.sh; ./run.sh"
